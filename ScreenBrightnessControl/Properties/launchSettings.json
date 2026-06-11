@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ScreenBrightnessControl (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "ScreenBrightnessControl (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

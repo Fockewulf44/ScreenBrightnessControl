@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="ScreenBrightnessControl.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ScreenBrightnessControl"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"    
+    Title="ScreenBrightnessControl">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+        
+        <Slider
+            AutomationProperties.Name="SldLaptopBrtn"
+            Header="Laptop Brightness"
+            TickFrequency="10"
+            TickPlacement="Outside"
+            SnapsTo="StepValues"
+            Width="200" 
+            ValueChanged="SldLaptopBrtn_ValueChanged"
+            />
+
+        <Slider
+            AutomationProperties.Name="SldMtrBrtn"
+            Header="Screen Brightness"
+            TickFrequency="10"
+            TickPlacement="Outside"
+            SnapsTo="StepValues"
+            Width="200"
+            Margin="0,10,0,0" 
+            ValueChanged="SldMtrBrtn_ValueChanged"/>
+        
+        <ToggleSwitch AutomationProperties.Name="TswitLaptopSchd" Header="Laptop Brightness Schedule"/>
+        <TimePicker Header="Arrival time" MinuteIncrement="15" />
+        <Slider AutomationProperties.Name="sldLaptopBrtnSet" Width="200"/>
+        
+        
+        <ToggleSwitch AutomationProperties.Name="TswitScreenSchd" Header="Monitor Brightness Schedule"/>
+        <TimePicker Header="Arrival time" MinuteIncrement="15" />
+        <Slider AutomationProperties.Name="sldMtrBrtnSet" Width="200"/>
+    </StackPanel>
+</Window>
