@@ -1,61 +1,101 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using ScreenBrightnessControl.ViewModels;
 using Windows.Graphics;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace ScreenBrightnessControl
 {
     /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
+    /// Hosts the brightness sliders. The window is responsible for presentation only;
+    /// all brightness behaviour lives in <see cref="MainViewModel"/>.
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        public MainWindow()
+        private const int WindowWidth = 500;
+        private const int WindowHeight = 750;
+
+        public MainWindow(MainViewModel viewModel)
         {
+            ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+
+            // Assigned before InitializeComponent so the compiled bindings resolve on first pass.
             InitializeComponent();
-            // Configure window size and prevent resizing using AppWindow
-            TrySetWindowSize(500, 750);
+
+            TrySetWindowSize(WindowWidth, WindowHeight);
+
+            Activated += OnFirstActivated;
+            Closed += OnClosed;
+        }
+
+        /// <summary>
+        /// Bound by the compiled bindings in MainWindow.xaml.
+        /// </summary>
+        public MainViewModel ViewModel { get; }
+
+        private async void OnFirstActivated(object sender, WindowActivatedEventArgs args)
+        {
+            Activated -= OnFirstActivated;
+
+            try
+            {
+                // Reads the brightness the displays actually report so the sliders open in sync.
+                await ViewModel.LoadAsync();
+            }
+            catch (Exception exception)
+            {
+                // This handler is async void, so an escaping exception would tear down the process.
+                Debug.WriteLine($"The displays could not be read on start-up: {exception}");
+            }
+        }
+
+        private void OnClosed(object sender, WindowEventArgs args)
+        {
+            Closed -= OnClosed;
+            ViewModel.Dispose();
         }
 
         private void TrySetWindowSize(int width, int height)
         {
+            AppWindow? appWindow = TryGetAppWindow();
+
+            if (appWindow is null)
+            {
+                return;
+            }
+
+            appWindow.Resize(new SizeInt32 { Width = width, Height = height });
+            MoveToCenter(appWindow, width, height);
+        }
+
+        private AppWindow? TryGetAppWindow()
+        {
             try
             {
                 nint windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                WindowId windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(windowHandle);
-                AppWindow? appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
-                if (appWindow is not null)
-                {
-                    appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = width, Height = height });
-                    MoveToCenter(appWindow, windowId, width, height);
-                }
+                WindowId windowId = Win32Interop.GetWindowIdFromWindow(windowHandle);
+                return AppWindow.GetFromWindowId(windowId);
             }
-            catch
+            catch (Exception exception) when (exception is COMException or ArgumentException)
             {
-
+                Debug.WriteLine($"The window could not be positioned: {exception.Message}");
+                return null;
             }
         }
 
-        private void MoveToCenter(AppWindow appWindow, WindowId windowId, int width, int height)
+        private static void MoveToCenter(AppWindow appWindow, int width, int height)
         {
-            DisplayArea displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Nearest);
+            DisplayArea displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Nearest);
             RectInt32 work = displayArea.WorkArea;
-            int centerX = work.X + (work.Width - width) / 2;
-            int centerY = work.Y + (work.Height - height) / 2;
-            appWindow.Move(new Windows.Graphics.PointInt32 { X = centerX, Y = centerY });
-        }
 
-        private void SldLaptopBrtn_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        {
-            ScreenBrightnessControl.SetLaptopScreenBrightness(((int)e.NewValue));
-        }
-
-        private void SldMtrBrtn_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        {
-            ScreenBrightnessControl.SetMonitorBrightness(((int)e.NewValue));
+            appWindow.Move(new PointInt32
+            {
+                X = work.X + ((work.Width - width) / 2),
+                Y = work.Y + ((work.Height - height) / 2),
+            });
         }
     }
 }
